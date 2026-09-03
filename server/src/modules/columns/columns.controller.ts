@@ -1,0 +1,36 @@
+import { Controller, Post, Patch, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { ColumnsService } from './columns.service';
+import { CreateColumnDto } from './dto/create-column.dto';
+import { UpdateColumnDto } from './dto/update-column.dto';
+import { MoveColumnDto } from './dto/move-column.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+@Controller()
+@UseGuards(JwtAuthGuard)
+export class ColumnsController {
+  constructor(private columnsService: ColumnsService) {}
+
+  @Post('boards/:boardId/columns')
+  async create(
+    @Param('boardId') boardId: string,
+    @Body() createColumnDto: CreateColumnDto,
+    @Request() req,
+  ) {
+    return this.columnsService.create(boardId, createColumnDto, req.user.userId);
+  }
+
+  @Patch('columns/:id')
+  async update(@Param('id') id: string, @Body() updateColumnDto: UpdateColumnDto, @Request() req) {
+    return this.columnsService.update(id, updateColumnDto, req.user.userId);
+  }
+
+  @Delete('columns/:id')
+  async delete(@Param('id') id: string, @Request() req) {
+    return this.columnsService.delete(id, req.user.userId);
+  }
+
+  @Patch('columns/:id/move')
+  async move(@Param('id') id: string, @Body() moveColumnDto: MoveColumnDto, @Request() req) {
+    return this.columnsService.move(id, moveColumnDto, req.user.userId);
+  }
+}
