@@ -22,7 +22,7 @@ services:
     working_dir: /app
     volumes:
       - ./server:/app
-    command: sh -c "npm ci && npx prisma contract:emit && npm run start:dev"
+    command: sh -c "npm ci && npx prisma generate && npm run start:dev"
     ports:
       - "5000:5000"
     depends_on:

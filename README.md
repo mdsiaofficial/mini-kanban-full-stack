@@ -17,7 +17,7 @@ A full-stack Kanban board application with real-time collaboration features.
 
 - NestJS 
 - TypeScript 7+
-- Prisma ORM 8+
+- Prisma ORM 7+
 - Socket.io for WebSocket gateway
 
 ### Database
@@ -102,7 +102,7 @@ cd server
 npm install
 
 # Generate Prisma client
-npx prisma contract:emit
+npx prisma generate
 
 # Run migrations
 npx prisma migrate dev

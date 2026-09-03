@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY src/prisma ./src/prisma
-RUN npx prisma contract:emit
+RUN npx prisma generate
 
 COPY . .
 

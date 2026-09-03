@@ -10,7 +10,7 @@ export class TasksService {
   constructor(private prisma: PrismaService) {}
 
   async create(columnId: string, createTaskDto: CreateTaskDto, userId: string) {
-    const column = await this.prisma.db.column.findUnique({
+    const column = await this.prisma.column.findUnique({
       where: { id: columnId },
       include: { board: { include: { members: true } } },
     });
@@ -21,14 +21,14 @@ export class TasksService {
 
     await this.checkBoardAccess(column.boardId, userId, [Role.OWNER, Role.EDITOR]);
 
-    const lastTask = await this.prisma.db.task.findFirst({
+    const lastTask = await this.prisma.task.findFirst({
       where: { columnId },
       orderBy: { order: 'desc' },
     });
 
     const order = lastTask ? lastTask.order + 1000 : 1000;
 
-    return this.prisma.db.task.create({
+    return this.prisma.task.create({
       data: {
         title: createTaskDto.title,
         description: createTaskDto.description,
@@ -39,7 +39,7 @@ export class TasksService {
   }
 
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string) {
-    const task = await this.prisma.db.task.findUnique({
+    const task = await this.prisma.task.findUnique({
       where: { id },
       include: { column: { include: { board: { include: { members: true } } } } },
     });
@@ -50,14 +50,14 @@ export class TasksService {
 
     await this.checkBoardAccess(task.column.boardId, userId, [Role.OWNER, Role.EDITOR]);
 
-    return this.prisma.db.task.update({
+    return this.prisma.task.update({
       where: { id },
       data: updateTaskDto,
     });
   }
 
   async delete(id: string, userId: string) {
-    const task = await this.prisma.db.task.findUnique({
+    const task = await this.prisma.task.findUnique({
       where: { id },
       include: { column: { include: { board: { include: { members: true } } } } },
     });
@@ -68,12 +68,12 @@ export class TasksService {
 
     await this.checkBoardAccess(task.column.boardId, userId, [Role.OWNER, Role.EDITOR]);
 
-    await this.prisma.db.task.delete({ where: { id } });
+    await this.prisma.task.delete({ where: { id } });
     return { message: 'Task deleted successfully' };
   }
 
   async move(id: string, moveTaskDto: MoveTaskDto, userId: string) {
-    const task = await this.prisma.db.task.findUnique({
+    const task = await this.prisma.task.findUnique({
       where: { id },
       include: { column: { include: { board: { include: { members: true } } } } },
     });
@@ -86,7 +86,7 @@ export class TasksService {
 
     const { targetColumnId, newOrder } = moveTaskDto;
 
-    const targetColumn = await this.prisma.db.column.findUnique({
+    const targetColumn = await this.prisma.column.findUnique({
       where: { id: targetColumnId },
     });
 
@@ -98,7 +98,7 @@ export class TasksService {
       throw new ForbiddenException('Cannot move task to a different board');
     }
 
-    const updatedTask = await this.prisma.db.task.update({
+    const updatedTask = await this.prisma.task.update({
       where: { id },
       data: {
         columnId: targetColumnId,
@@ -111,7 +111,7 @@ export class TasksService {
   }
 
   private async checkBoardAccess(boardId: string, userId: string, allowedRoles: Role[]) {
-    const membership = await this.prisma.db.boardMember.findUnique({
+    const membership = await this.prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
     });
 

@@ -7,7 +7,7 @@ A NestJS backend API for a Mini Kanban Board application with real-time features
 ## Tech Stack
 
 - **Framework**: NestJS 10.x
-- **Database**: PostgreSQL with Prisma 8.1.0-dev.6 (contract-first approach)
+- **Database**: PostgreSQL with Prisma 7 (stable approach)
 - **Authentication**: JWT (access + refresh tokens)
 - **Real-time**: Socket.io via WebSocket Gateway
 - **Validation**: class-validator, class-transformer
@@ -22,7 +22,7 @@ server/
 │   ├── app.controller.ts            # Health check
 │   ├── app.service.ts               # Basic service
 │   ├── prisma/
-│   │   ├── contract.prisma          # Database schema (Prisma 8 contract-first)
+│   │   ├── schema.prisma          # Database schema (Prisma 7)
 │   │   ├── db.ts                    # PrismaClient export
 │   │   ├── prisma.service.ts       # Database connection wrapper
 │   │   └── prisma.module.ts        # Global Prisma module
@@ -51,12 +51,12 @@ server/
 └── .env.example
 ```
 
-## Prisma 8 Contract-First Approach
+## Prisma 7 Approach
 
-This project uses Prisma 8.1.0-dev.6 with the contract-first pattern:
+This project uses Prisma 7:
 
-1. **Schema**: `src/prisma/contract.prisma`
-2. **Client Export**: `src/prisma/db.ts` - exports singleton `PrismaClient`
+1. **Schema**: `prisma/schema.prisma`
+2. **Client Export**: `prisma/db.ts` - exports singleton `PrismaClient`
 3. **Namespace-qualified queries**: Services use `this.prisma.db.user.findMany()` etc.
 
 ## Setup
@@ -77,7 +77,7 @@ npm install
 cp .env.example .env
 # Edit .env with your database credentials
 
-npx prisma contract:emit
+npx prisma generate
 npx prisma db push
 ```
 

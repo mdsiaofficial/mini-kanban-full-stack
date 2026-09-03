@@ -10,7 +10,7 @@ export class BoardsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createBoardDto: CreateBoardDto, userId: string) {
-    const board = await this.prisma.db.board.create({
+    const board = await this.prisma.board.create({
       data: {
         name: createBoardDto.name,
         description: createBoardDto.description,
@@ -38,7 +38,7 @@ export class BoardsService {
   }
 
   async findAll(userId: string) {
-    return this.prisma.db.board.findMany({
+    return this.prisma.board.findMany({
       where: {
         OR: [
           { ownerId: userId },
@@ -54,7 +54,7 @@ export class BoardsService {
   }
 
   async findOne(id: string, userId: string) {
-    const board = await this.prisma.db.board.findUnique({
+    const board = await this.prisma.board.findUnique({
       where: { id },
       include: {
         columns: {
@@ -86,7 +86,7 @@ export class BoardsService {
       throw new ForbiddenException('You do not have permission to update this board');
     }
 
-    return this.prisma.db.board.update({
+    return this.prisma.board.update({
       where: { id },
       data: updateBoardDto,
     });
@@ -100,7 +100,7 @@ export class BoardsService {
       throw new ForbiddenException('Only the owner can delete this board');
     }
 
-    await this.prisma.db.board.delete({ where: { id } });
+    await this.prisma.board.delete({ where: { id } });
     return { message: 'Board deleted successfully' };
   }
 
@@ -112,7 +112,7 @@ export class BoardsService {
       throw new ForbiddenException('Only the owner can add members');
     }
 
-    const userToAdd = await this.prisma.db.user.findUnique({
+    const userToAdd = await this.prisma.user.findUnique({
       where: { email: addMemberDto.email },
     });
 
@@ -125,7 +125,7 @@ export class BoardsService {
       throw new ForbiddenException('User is already a member');
     }
 
-    return this.prisma.db.boardMember.create({
+    return this.prisma.boardMember.create({
       data: {
         boardId,
         userId: userToAdd.id,
@@ -152,7 +152,7 @@ export class BoardsService {
       throw new ForbiddenException('Cannot remove the owner');
     }
 
-    await this.prisma.db.boardMember.delete({
+    await this.prisma.boardMember.delete({
       where: { id: memberToRemove.id },
     });
 
@@ -162,21 +162,21 @@ export class BoardsService {
   async getMembers(boardId: string, userId: string) {
     await this.findOne(boardId, userId);
 
-    return this.prisma.db.boardMember.findMany({
+    return this.prisma.boardMember.findMany({
       where: { boardId },
       include: { user: { select: { id: true, email: true, name: true } } },
     });
   }
 
   async getUserRole(boardId: string, userId: string): Promise<Role> {
-    const membership = await this.prisma.db.boardMember.findUnique({
+    const membership = await this.prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
     });
     return membership?.role;
   }
 
   private async findBoardWithMembership(boardId: string, userId: string) {
-    const board = await this.prisma.db.board.findUnique({
+    const board = await this.prisma.board.findUnique({
       where: { id: boardId },
       include: { members: true },
     });
