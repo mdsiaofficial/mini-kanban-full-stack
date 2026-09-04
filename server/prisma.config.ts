@@ -1,7 +1,5 @@
-import { env } from "process";
-
 export default {
   migrate: {
-    url: env("DATABASE_URL") || "",
+    url: process.env.DATABASE_URL ?? '',
   },
 };
