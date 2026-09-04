@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url = "postgresql://kanban_user:kanban_password@localhost:5432/kanban"
 }
 
 model User {
