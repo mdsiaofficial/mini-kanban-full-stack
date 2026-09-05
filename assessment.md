@@ -6,19 +6,19 @@ Mini Kanban Board — Full-Stack Engineering Challenge
 
 ### Frontend
 
-Next.js, React (TypeScript preferred), Tailwind CSS
+Next.js 16+ (TypeScript preferred), Tailwind CSS 4+
 
 ### Backend
 
-NestJS (preferred) or Node.js / Express.js with TypeScript
+NestJS 12+ (preferred) with TypeScript
 
 ### Database
 
-PostgreSQL with Prisma (preferred)
+PostgreSQL 18+ with Prisma 7.9.0 (preferred)
 
 ### DevOps
 
-Docker (preferable)
+Docker with (postgres:18.6-alpine3.24 and oven/bun:1.4.1-alpine) (preferable)
 
 ## Project Overview
 
