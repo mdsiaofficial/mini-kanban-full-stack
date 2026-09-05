@@ -18,7 +18,7 @@ PostgreSQL 18+ with Prisma 7.9.0 (preferred)
 
 ### DevOps
 
-Docker with (postgres:18.6-alpine3.24 and oven/bun:1.4.1-alpine) (preferable)
+Docker with postgres:18.6-alpine3.24 and oven/bun:1.4.1-alpine (preferable)
 
 ## Project Overview
 
@@ -42,6 +42,20 @@ Order Consistency: Ensure task ordering remains stable, accurate, and conflict-f
 
 3. Frontend:
 Interactive board view supporting drag-and-drop task movement.
+
+## Open Discussion: 
+
+1. bcrypt for hashing, 
+2. cookie for authentication, 
+3. port: frontend 3000, backend 5000, postgres 5454 
+4. class-validator or schema validation nestjs 
+5. i dont want any uuid or cuid, i just want increamenting numbering id, 
+6. zustand for nextjs, 
+7. bun test
+8. for task moving/order/reordering - use linked-list method
+9. use bun runtime, bun package manager.
+10. for locally running also use docker to host the database
+
 
 ## Submission & Deliverables
 
