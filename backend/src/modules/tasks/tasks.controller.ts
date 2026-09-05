@@ -1,5 +1,5 @@
 import { Controller, Post, Patch, Delete, Body, Param, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
-import { AuthenticatedRequest } from '../../types/authenticated-request';
+import type { AuthenticatedRequest } from '../../types/authenticated-request';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';

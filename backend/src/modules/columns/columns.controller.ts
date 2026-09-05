@@ -1,5 +1,5 @@
 import { Controller, Post, Patch, Delete, Body, Param, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
-import { AuthenticatedRequest } from '../../types/authenticated-request';
+import type { AuthenticatedRequest } from '../../types/authenticated-request';
 import { ColumnsService } from './columns.service';
 import { CreateColumnDto } from './dto/create-column.dto';
 import { UpdateColumnDto } from './dto/update-column.dto';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   DndContext,
@@ -11,6 +11,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
@@ -34,11 +35,8 @@ import {
   ArrowLeftIcon,
   PlusIcon,
   TrashIcon,
-  EditIcon,
   GripVerticalIcon,
   UsersIcon,
-  ShieldIcon,
-  CheckIcon,
   CloseIcon,
   KanbanIcon,
 } from '@/components/ui/icons';
@@ -134,7 +132,7 @@ function Column({
   onDeleteTask: (e: React.MouseEvent, taskId: string) => void;
   canEdit: boolean;
 }) {
-  const { setNodeRef, isDragging } = useSortable({
+  const { setNodeRef } = useDroppable({
     id: column.id,
     data: {
       type: 'Column',
@@ -145,9 +143,7 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`kanban-column shrink-0 bg-slate-100/90 rounded-2xl p-3.5 flex flex-col max-h-[calc(100vh-180px)] border border-slate-200/80 transition-all ${
-        isDragging ? 'opacity-50 ring-2 ring-indigo-400' : ''
-      }`}
+      className="kanban-column shrink-0 bg-slate-100/90 rounded-2xl p-3.5 flex flex-col max-h-[calc(100vh-180px)] border border-slate-200/80 transition-all"
     >
       {/* Column Header */}
       <div className="flex items-center justify-between px-2 py-1.5 mb-2.5">
@@ -213,7 +209,6 @@ function Column({
 // --- Board Page Component ---
 export default function BoardPage() {
   const params = useParams();
-  const router = useRouter();
   const boardId = params.id as string;
 
   const { user } = useAuthStore();
@@ -296,7 +291,7 @@ export default function BoardPage() {
   const handleDragOver = (event: DragOverEvent) => {
     if (event.activatorEvent) {
       const mouseEvent = event.activatorEvent as MouseEvent;
-      pointerYRef.current = mouseEvent.clientY;
+      pointerYRef.current = mouseEvent.clientY + event.delta.y;
     }
   };
 
@@ -324,70 +319,65 @@ export default function BoardPage() {
     if (!sourceColumn || !targetColumn) return;
 
     const activeIndex = sourceColumn.tasks.findIndex((t) => String(t.id) === activeTaskId);
-    const overIndex = targetColumn.tasks.findIndex((t) => String(t.id) === overId);
 
     if (activeIndex === -1) return;
 
     let targetTaskId: number | undefined;
     let position: 'before' | 'after' | undefined;
 
-    if (overId === String(targetColumn.id)) {
-      if (targetColumn.tasks.length === 0) {
-        targetTaskId = undefined;
-        position = undefined;
-      } else if (sourceColumn.id === targetColumn.id) {
-        if (activeIndex === overIndex || overIndex === -1) return;
-        if (activeIndex < overIndex) {
-          if (overIndex === targetColumn.tasks.length - 1) {
-            targetTaskId = parseInt(String(targetColumn.tasks[overIndex].id), 10);
-            position = 'after';
-          } else {
-            targetTaskId = parseInt(String(targetColumn.tasks[overIndex + 1].id), 10);
-            position = 'before';
-          }
-        } else {
-          if (overIndex === 0) {
-            targetTaskId = parseInt(String(targetColumn.tasks[0].id), 10);
-            position = 'before';
-          } else {
-            targetTaskId = parseInt(String(targetColumn.tasks[overIndex - 1].id), 10);
-            position = 'after';
-          }
-        }
-      } else {
-        if (targetColumn.tasks.length === 0) {
-          targetTaskId = undefined;
-          position = undefined;
-        } else {
-          targetTaskId = parseInt(String(targetColumn.tasks[0].id), 10);
-          position = 'before';
-        }
-      }
-    } else {
+    const isOverTask = overId !== String(targetColumn.id);
+
+    if (isOverTask) {
       const overTaskIndex = targetColumn.tasks.findIndex((t) => String(t.id) === overId);
       if (overTaskIndex === -1) return;
 
       const overRect = over.rect;
       const pointerY = pointerYRef.current;
-      const taskTop = overRect.top;
-      const taskMidpoint = taskTop + overRect.height / 2;
+      const taskMidpoint = overRect.top + overRect.height / 2;
 
-      if (pointerY < taskMidpoint) {
-        targetTaskId = parseInt(overId, 10);
-        position = 'before';
-      } else {
-        if (overTaskIndex === targetColumn.tasks.length - 1) {
+      if (sourceColumn.id === targetColumn.id) {
+        if (activeIndex === overTaskIndex) return;
+
+        if (pointerY < taskMidpoint) {
+          targetTaskId = parseInt(overId, 10);
+          position = 'before';
+        } else {
           targetTaskId = parseInt(overId, 10);
           position = 'after';
-        } else {
-          targetTaskId = parseInt(String(targetColumn.tasks[overTaskIndex + 1].id), 10);
+        }
+      } else {
+        if (pointerY < taskMidpoint) {
+          targetTaskId = parseInt(overId, 10);
           position = 'before';
+        } else {
+          if (overTaskIndex === targetColumn.tasks.length - 1) {
+            targetTaskId = parseInt(overId, 10);
+            position = 'after';
+          } else {
+            targetTaskId = parseInt(String(targetColumn.tasks[overTaskIndex + 1].id), 10);
+            position = 'before';
+          }
+        }
+      }
+    } else {
+      if (sourceColumn.id === targetColumn.id) {
+        if (targetColumn.tasks.length === 0) return;
+        const lastTask = targetColumn.tasks[targetColumn.tasks.length - 1];
+        targetTaskId = parseInt(String(lastTask.id), 10);
+        position = 'after';
+      } else {
+        if (targetColumn.tasks.length === 0) {
+          targetTaskId = undefined;
+          position = undefined;
+        } else {
+          const lastTask = targetColumn.tasks[targetColumn.tasks.length - 1];
+          targetTaskId = parseInt(String(lastTask.id), 10);
+          position = 'after';
         }
       }
     }
 
     try {
-      // Note: targetColumnId must be passed as string to match moveTask API
       await moveTask(activeTaskId, String(targetColumn.id), targetTaskId, position);
     } catch (error) {
       console.error('Failed to move task:', error);
@@ -624,22 +614,17 @@ export default function BoardPage() {
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-5 items-start">
-            <SortableContext
-              items={currentBoard.columns.map((c) => c.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {currentBoard.columns.map((column) => (
-                <Column
-                  key={column.id}
-                  column={column}
-                  onAddTask={handleOpenAddTask}
-                  onDeleteColumn={handleDeleteColumn}
-                  onTaskClick={handleTaskClick}
-                  onDeleteTask={handleDeleteTask}
-                  canEdit={canEdit}
-                />
-              ))}
-            </SortableContext>
+            {currentBoard.columns.map((column) => (
+              <Column
+                key={column.id}
+                column={column}
+                onAddTask={handleOpenAddTask}
+                onDeleteColumn={handleDeleteColumn}
+                onTaskClick={handleTaskClick}
+                onDeleteTask={handleDeleteTask}
+                canEdit={canEdit}
+              />
+            ))}
 
             {/* Empty or Add Column quick card */}
             {canEdit && (

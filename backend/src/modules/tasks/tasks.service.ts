@@ -111,10 +111,6 @@ export class TasksService {
 
     const { targetColumnId, targetTaskId, position } = moveTaskDto;
 
-    if (targetColumnId !== task.columnId && targetTaskId === undefined) {
-      throw new BadRequestException('targetTaskId is required when moving to a different column');
-    }
-
     const targetColumn = await this.prisma.column.findUnique({
       where: { id: targetColumnId },
     });

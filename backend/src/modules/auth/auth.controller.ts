@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, Req, HttpCode, HttpStatus, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { AuthenticatedRequest } from '../../types/authenticated-request';
+import type { AuthenticatedRequest } from '../../types/authenticated-request';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';

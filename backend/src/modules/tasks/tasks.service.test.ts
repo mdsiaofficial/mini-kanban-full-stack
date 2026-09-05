@@ -208,15 +208,6 @@ describe('TasksService', () => {
       expect(mockPrismaService.$transaction).toHaveBeenCalled();
     });
 
-    test('should throw BadRequestException when moving to different column without targetTaskId', async () => {
-      mockPrismaService.task.findUnique.mockResolvedValue(mockTask);
-      mockPrismaService.boardMember.findUnique.mockResolvedValue(mockMember);
-
-      await expect(
-        tasksService.move(1, { targetColumnId: 2 }, 1),
-      ).rejects.toThrow(BadRequestException);
-    });
-
     test('should throw NotFoundException if task not found', async () => {
       mockPrismaService.task.findUnique.mockResolvedValue(null);
 
