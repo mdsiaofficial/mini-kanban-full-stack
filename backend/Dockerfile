@@ -8,9 +8,10 @@ RUN bun install
 
 COPY prisma ./prisma
 RUN bunx prisma generate
+RUN bunx prisma migrate deploy
 
 COPY . .
 
 EXPOSE 5000
 
-CMD ["bun", "run", "dev"]
+CMD ["bun", "run", "start"]
