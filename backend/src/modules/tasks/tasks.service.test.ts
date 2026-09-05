@@ -87,7 +87,7 @@ describe('TasksService', () => {
     vi.clearAllMocks();
 
     mockPrismaService = createMockPrismaService();
-    mockPrismaService.$transaction.mockImplementation(async (callback) => {
+    mockPrismaService.$transaction.mockImplementation(async (callback: any) => {
       return callback(mockPrismaService);
     });
 
@@ -130,6 +130,7 @@ describe('TasksService', () => {
       mockPrismaService.boardMember.findUnique.mockResolvedValue(mockMember);
       mockPrismaService.task.findFirst.mockResolvedValue(existingTask);
       mockPrismaService.task.create.mockResolvedValue(newTask);
+      mockPrismaService.task.update.mockResolvedValue({});
 
       await tasksService.create(
         1,
@@ -139,6 +140,10 @@ describe('TasksService', () => {
 
       expect(mockPrismaService.task.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ prevId: 2 }),
+      });
+      expect(mockPrismaService.task.update).toHaveBeenCalledWith({
+        where: { id: 2 },
+        data: { nextId: 3 },
       });
     });
 

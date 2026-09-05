@@ -25,7 +25,9 @@ api.interceptors.response.use(
         
         return api(originalRequest);
       } catch {
-        window.location.href = '/login';
+        if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+          window.location.href = '/login';
+        }
       }
     }
     

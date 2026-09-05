@@ -3,7 +3,6 @@
 import { create } from 'zustand';
 import { User } from '@/types';
 import { authApi, usersApi } from '@/lib/api';
-import { useSocketStore } from './socket';
 
 interface AuthState {
   user: User | null;
@@ -25,19 +24,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     await authApi.login(email, password);
     const { data: user } = await usersApi.getMe();
     set({ user, isAuthenticated: true });
-    useSocketStore.getState().connect();
   },
   
   register: async (email: string, password: string, name?: string) => {
     await authApi.register(email, password, name);
     const { data: user } = await usersApi.getMe();
     set({ user, isAuthenticated: true });
-    useSocketStore.getState().connect();
   },
   
   logout: () => {
     authApi.logout().catch(() => {});
-    useSocketStore.getState().disconnect();
     set({ user: null, isAuthenticated: false });
   },
   
@@ -47,7 +43,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { data: user } = await usersApi.getMe();
       set({ user, isAuthenticated: true, isLoading: false });
-      useSocketStore.getState().connect();
     } catch {
       set({ user: null, isAuthenticated: false, isLoading: false });
     }

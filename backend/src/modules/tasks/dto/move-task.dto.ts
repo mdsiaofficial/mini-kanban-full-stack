@@ -1,10 +1,13 @@
 import { IsNumber, IsOptional, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class MoveTaskDto {
+  @Type(() => Number)
   @IsNumber()
-  targetColumnId: number;
+  targetColumnId!: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   targetTaskId?: number;
 

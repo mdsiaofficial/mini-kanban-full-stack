@@ -3,7 +3,7 @@ import { Role } from '../../../generated/prisma/client.js';
 
 export class AddMemberDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsEnum(Role)
   @IsOptional()

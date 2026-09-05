@@ -50,6 +50,7 @@ describe('AuthService', () => {
     mockUsersService = {
       findByEmail: vi.fn(),
       findById: vi.fn(),
+      findByIdWithRefreshToken: vi.fn(),
       create: vi.fn(),
       saveRefreshToken: vi.fn(),
       removeRefreshToken: vi.fn(),
@@ -170,7 +171,7 @@ describe('AuthService', () => {
         refreshToken: '$2b$10$validrefreshtoken',
       };
       mockJwtService.verify.mockReturnValue({ sub: 1, email: 'test@example.com' });
-      mockUsersService.findById.mockResolvedValue(mockUserWithToken);
+      mockUsersService.findByIdWithRefreshToken.mockResolvedValue(mockUserWithToken);
       (bcrypt.compare as any).mockResolvedValue(true);
 
       const result = await authService.refreshToken('valid-refresh-token');

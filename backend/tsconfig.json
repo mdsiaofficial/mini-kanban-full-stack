@@ -21,5 +21,5 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "exclude": ["prisma.config.ts"]
+  "exclude": ["prisma.config.ts", "**/*.test.ts"]
 }

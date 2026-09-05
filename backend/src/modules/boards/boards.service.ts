@@ -58,7 +58,7 @@ export class BoardsService {
       where: { id },
       include: {
         columns: {
-          include: { tasks: { orderBy: { order: 'asc' } } },
+          include: { tasks: { orderBy: { id: 'asc' } } },
           orderBy: { order: 'asc' },
         },
         members: { include: { user: { select: { id: true, email: true, name: true } } } },
@@ -168,7 +168,7 @@ export class BoardsService {
     });
   }
 
-  async getUserRole(boardId: number, userId: number): Promise<Role> {
+  async getUserRole(boardId: number, userId: number): Promise<Role | undefined> {
     const membership = await this.prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
     });

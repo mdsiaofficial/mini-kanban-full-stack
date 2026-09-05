@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
-import type { Request } from 'express';
+import { AuthenticatedRequest } from '../../types/authenticated-request';
 import { BoardsService } from './boards.service';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateBoardDto } from './dto/update-board.dto';
@@ -12,42 +12,42 @@ export class BoardsController {
   constructor(private boardsService: BoardsService) {}
 
   @Post()
-  async create(@Body() createBoardDto: CreateBoardDto, @Req() req: Request) {
+  async create(@Body() createBoardDto: CreateBoardDto, @Req() req: AuthenticatedRequest) {
     return this.boardsService.create(createBoardDto, req.user.userId);
   }
 
   @Get()
-  async findAll(@Req() req: Request) {
+  async findAll(@Req() req: AuthenticatedRequest) {
     return this.boardsService.findAll(req.user.userId);
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
     return this.boardsService.findOne(id, req.user.userId);
   }
 
   @Patch(':id')
-  async update(@Param('id', ParseIntPipe) id: number, @Body() updateBoardDto: UpdateBoardDto, @Req() req: Request) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateBoardDto: UpdateBoardDto, @Req() req: AuthenticatedRequest) {
     return this.boardsService.update(id, updateBoardDto, req.user.userId);
   }
 
   @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+  async delete(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
     return this.boardsService.delete(id, req.user.userId);
   }
 
   @Post(':id/members')
-  async addMember(@Param('id', ParseIntPipe) id: number, @Body() addMemberDto: AddMemberDto, @Req() req: Request) {
+  async addMember(@Param('id', ParseIntPipe) id: number, @Body() addMemberDto: AddMemberDto, @Req() req: AuthenticatedRequest) {
     return this.boardsService.addMember(id, addMemberDto, req.user.userId);
   }
 
   @Delete(':id/members/:userId')
-  async removeMember(@Param('id', ParseIntPipe) id: number, @Param('userId', ParseIntPipe) userId: number, @Req() req: Request) {
+  async removeMember(@Param('id', ParseIntPipe) id: number, @Param('userId', ParseIntPipe) userId: number, @Req() req: AuthenticatedRequest) {
     return this.boardsService.removeMember(id, userId, req.user.userId);
   }
 
   @Get(':id/members')
-  async getMembers(@Param('id', ParseIntPipe) id: number, @Req() req: Request) {
+  async getMembers(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
     return this.boardsService.getMembers(id, req.user.userId);
   }
 }

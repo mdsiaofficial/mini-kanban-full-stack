@@ -36,7 +36,16 @@ export class TasksService {
       data.prevId = lastTask.id;
     }
 
-    return this.prisma.task.create({ data });
+    const newTask = await this.prisma.task.create({ data });
+
+    if (lastTask) {
+      await this.prisma.task.update({
+        where: { id: lastTask.id },
+        data: { nextId: newTask.id },
+      });
+    }
+
+    return newTask;
   }
 
   async update(id: number, updateTaskDto: UpdateTaskDto, userId: number) {

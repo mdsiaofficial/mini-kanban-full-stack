@@ -3,7 +3,6 @@
 import { create } from 'zustand';
 import { Board, Column, Task } from '@/types';
 import { boardsApi, columnsApi, tasksApi } from '@/lib/api';
-import { useSocketStore } from './socket';
 
 interface BoardState {
   boards: Board[];
@@ -29,9 +28,6 @@ interface BoardState {
   
   addBoardMember: (boardId: string, email: string, role?: string) => Promise<void>;
   removeBoardMember: (boardId: string, userId: string) => Promise<void>;
-  
-  subscribeToBoard: (boardId: string) => void;
-  unsubscribeFromBoard: (boardId: string) => void;
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
@@ -46,7 +42,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       const { data } = await boardsApi.getAll();
       set({ boards: data, isLoading: false });
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
     }
   },
   
@@ -56,7 +52,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       const { data } = await boardsApi.getOne(id);
       set({ currentBoard: data, isLoading: false });
     } catch (error: any) {
-      set({ error: error.message, isLoading: false });
+      set({ error: error.response?.data?.message || error.message, isLoading: false });
     }
   },
   
@@ -84,74 +80,57 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   
   createColumn: async (boardId: string, name: string) => {
     const { data } = await columnsApi.create(boardId, name);
-    const socket = useSocketStore.getState().socket;
-    socket?.emit('columnCreated', { boardId, column: data });
+    await get().fetchBoard(boardId);
     return data;
   },
   
   updateColumn: async (id: string, name: string) => {
-    const { data } = await columnsApi.update(id, name);
-    const socket = useSocketStore.getState().socket;
+    await columnsApi.update(id, name);
     if (get().currentBoard) {
-      socket?.emit('columnUpdated', { boardId: get().currentBoard!.id, column: data });
+      await get().fetchBoard(get().currentBoard!.id);
     }
   },
   
   deleteColumn: async (id: string) => {
     await columnsApi.delete(id);
-    const socket = useSocketStore.getState().socket;
     if (get().currentBoard) {
-      socket?.emit('columnDeleted', { boardId: get().currentBoard!.id, columnId: id });
+      await get().fetchBoard(get().currentBoard!.id);
     }
   },
   
   moveColumn: async (id: string, newOrder: number) => {
-    const { data } = await columnsApi.move(id, newOrder);
-    const socket = useSocketStore.getState().socket;
+    await columnsApi.move(id, newOrder);
     if (get().currentBoard) {
-      socket?.emit('columnUpdated', { boardId: get().currentBoard!.id, column: data });
+      await get().fetchBoard(get().currentBoard!.id);
     }
   },
   
   createTask: async (columnId: string, title: string, description?: string) => {
     const { data } = await tasksApi.create(columnId, title, description);
-    const socket = useSocketStore.getState().socket;
     if (get().currentBoard) {
-      socket?.emit('taskCreated', { boardId: get().currentBoard!.id, task: data, columnId });
+      await get().fetchBoard(get().currentBoard!.id);
     }
     return data;
   },
   
   updateTask: async (id: string, taskData: { title?: string; description?: string }) => {
-    const { data } = await tasksApi.update(id, taskData);
-    const socket = useSocketStore.getState().socket;
+    await tasksApi.update(id, taskData);
     if (get().currentBoard) {
-      socket?.emit('taskUpdated', { boardId: get().currentBoard!.id, task: data });
+      await get().fetchBoard(get().currentBoard!.id);
     }
   },
   
   deleteTask: async (id: string) => {
-    const task = get().currentBoard?.columns.flatMap((c) => c.tasks).find((t) => t.id === id);
     await tasksApi.delete(id);
-    const socket = useSocketStore.getState().socket;
-    if (get().currentBoard && task) {
-      socket?.emit('taskDeleted', { boardId: get().currentBoard!.id, taskId: id, columnId: task.columnId });
+    if (get().currentBoard) {
+      await get().fetchBoard(get().currentBoard!.id);
     }
   },
   
   moveTask: async (id: string, targetColumnId: string, targetTaskId?: number, position?: 'before' | 'after') => {
-    const { data } = await tasksApi.move(id, targetColumnId, targetTaskId, position);
-    const socket = useSocketStore.getState().socket;
+    await tasksApi.move(id, targetColumnId, targetTaskId, position);
     if (get().currentBoard) {
-      const task = get().currentBoard!.columns.flatMap((c) => c.tasks).find((t) => t.id === id);
-      socket?.emit('taskMoved', {
-        boardId: get().currentBoard!.id,
-        taskId: id,
-        fromColumnId: task?.columnId || targetColumnId,
-        toColumnId: targetColumnId,
-        targetTaskId,
-        position,
-      });
+      await get().fetchBoard(get().currentBoard!.id);
     }
   },
   
@@ -163,15 +142,5 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   removeBoardMember: async (boardId: string, userId: string) => {
     await boardsApi.removeMember(boardId, userId);
     await get().fetchBoard(boardId);
-  },
-  
-  subscribeToBoard: (boardId: string) => {
-    const socket = useSocketStore.getState().socket;
-    socket?.emit('joinBoard', { boardId });
-  },
-  
-  unsubscribeFromBoard: (boardId: string) => {
-    const socket = useSocketStore.getState().socket;
-    socket?.emit('leaveBoard', { boardId });
   },
 }));

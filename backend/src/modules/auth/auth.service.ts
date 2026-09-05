@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import type { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -59,7 +60,7 @@ export class AuthService {
         secret: process.env.JWT_REFRESH_SECRET,
       });
       
-      const user = await this.usersService.findById(payload.sub);
+      const user = await this.usersService.findByIdWithRefreshToken(payload.sub);
       if (!user || !user.refreshToken) {
         throw new UnauthorizedException('Invalid refresh token');
       }
@@ -69,7 +70,11 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      return this.generateTokens(user.id, user.email);
+      const tokens = await this.generateTokens(user.id, user.email);
+      return {
+        user: { id: user.id, email: user.email, name: user.name },
+        ...tokens,
+      };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -87,7 +92,7 @@ export class AuthService {
       this.jwtService.signAsync(payload),
       this.jwtService.signAsync(payload, {
         secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+        expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as StringValue,
       }),
     ]);
 
