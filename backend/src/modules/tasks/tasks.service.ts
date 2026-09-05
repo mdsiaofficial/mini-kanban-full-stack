@@ -124,6 +124,9 @@ export class TasksService {
     }
 
     if (targetTaskId !== undefined) {
+      if (targetTaskId === id) {
+        return task;
+      }
       const targetTask = await this.prisma.task.findUnique({ where: { id: targetTaskId } });
       if (!targetTask) {
         throw new NotFoundException('Target task not found');
@@ -152,7 +155,7 @@ export class TasksService {
 
       if (targetTaskId === undefined) {
         const lastTask = await prisma.task.findFirst({
-          where: { columnId: targetColumnId, nextId: null },
+          where: { columnId: targetColumnId, nextId: null, id: { not: id } },
           orderBy: { id: 'desc' },
         });
 
@@ -226,6 +229,16 @@ export class TasksService {
   }
 
   private async checkBoardAccess(boardId: number, userId: number, allowedRoles: Role[]) {
+    // Check if user is the board owner
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      select: { ownerId: true },
+    });
+
+    if (board && board.ownerId === userId) {
+      return; // Owner has access
+    }
+
     const membership = await this.prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
     });

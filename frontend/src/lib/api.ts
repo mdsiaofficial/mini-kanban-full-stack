@@ -98,8 +98,12 @@ export const tasksApi = {
   
   delete: (id: string) => api.delete(`/tasks/${id}`),
   
-  move: (id: string, targetColumnId: string, targetTaskId?: number, position?: 'before' | 'after') =>
-    api.patch(`/tasks/${id}/move`, { targetColumnId, targetTaskId, position }),
+  move: (id: string, targetColumnId: string | number, targetTaskId?: number, position?: 'before' | 'after') =>
+    api.patch(`/tasks/${id}/move`, {
+      targetColumnId: Number(targetColumnId),
+      targetTaskId: targetTaskId !== undefined ? Number(targetTaskId) : undefined,
+      position,
+    }),
 };
 
 export default api;

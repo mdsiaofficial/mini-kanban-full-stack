@@ -58,7 +58,7 @@ export class BoardsService {
       where: { id },
       include: {
         columns: {
-          include: { tasks: { orderBy: { id: 'asc' } } },
+          include: { tasks: true },
           orderBy: { order: 'asc' },
         },
         members: { include: { user: { select: { id: true, email: true, name: true } } } },
@@ -75,7 +75,50 @@ export class BoardsService {
       throw new ForbiddenException('You do not have access to this board');
     }
 
+    for (const column of board.columns) {
+      column.tasks = this.resolveTaskOrder(column.tasks);
+    }
+
     return board;
+  }
+
+  private resolveTaskOrder(tasks: any[]): any[] {
+    if (tasks.length === 0) return tasks;
+
+    const byId = new Map(tasks.map((t) => [t.id, t]));
+    const byPrev = new Map(tasks.filter((t) => t.prevId !== null).map((t) => [t.prevId, t]));
+
+    let head: any = null;
+    for (const t of tasks) {
+      if (t.prevId === null || !byId.has(t.prevId)) {
+        head = t;
+        break;
+      }
+    }
+
+    if (!head) {
+      head = tasks[0];
+    }
+
+    const ordered: any[] = [];
+    let current: any = head;
+    const visited = new Set<number>();
+
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      ordered.push(current);
+      current = current.nextId !== null ? byId.get(current.nextId) : undefined;
+    }
+
+    if (ordered.length < tasks.length) {
+      for (const t of tasks) {
+        if (!visited.has(t.id)) {
+          ordered.push(t);
+        }
+      }
+    }
+
+    return ordered;
   }
 
   async update(id: number, updateBoardDto: UpdateBoardDto, userId: number) {

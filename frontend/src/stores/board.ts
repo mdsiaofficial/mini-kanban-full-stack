@@ -28,6 +28,7 @@ interface BoardState {
   
   addBoardMember: (boardId: string, email: string, role?: string) => Promise<void>;
   removeBoardMember: (boardId: string, userId: string) => Promise<void>;
+  setBoard: (board: Board | null) => void;
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
@@ -35,6 +36,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   currentBoard: null,
   isLoading: false,
   error: null,
+  
+  setBoard: (board: Board | null) => set({ currentBoard: board }),
   
   fetchBoards: async () => {
     set({ isLoading: true, error: null });

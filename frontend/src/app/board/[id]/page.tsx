@@ -7,6 +7,9 @@ import {
   DndContext,
   DragOverlay,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
+  CollisionDetection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -21,12 +24,13 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
+  arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 import { useBoardStore } from '@/stores/board';
 import { useAuthStore } from '@/stores/auth';
-import { Task, Column as ColumnType } from '@/types';
+import { Task, Column as ColumnType, Board } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
@@ -40,6 +44,33 @@ import {
   CloseIcon,
   KanbanIcon,
 } from '@/components/ui/icons';
+
+// --- Custom Collision Detection ---
+const customCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    const taskCollision = pointerCollisions.find(
+      (c) => !String(c.id).startsWith('column-')
+    );
+    if (taskCollision) {
+      return [taskCollision];
+    }
+    return pointerCollisions;
+  }
+
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) {
+    const taskCollision = rectCollisions.find(
+      (c) => !String(c.id).startsWith('column-')
+    );
+    if (taskCollision) {
+      return [taskCollision];
+    }
+    return rectCollisions;
+  }
+
+  return closestCorners(args);
+};
 
 // --- Task Card Component ---
 function TaskCard({
@@ -60,7 +91,14 @@ function TaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({
+    id: String(task.id),
+    data: {
+      type: 'Task',
+      task,
+    },
+    disabled: !canEdit,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -71,6 +109,7 @@ function TaskCard({
     <div
       ref={setNodeRef}
       style={style}
+      {...(canEdit ? { ...attributes, ...listeners } : {})}
       className={`group relative bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer select-none ${
         isDragging ? 'opacity-40 ring-2 ring-indigo-500 shadow-lg scale-102 z-30' : ''
       }`}
@@ -80,9 +119,6 @@ function TaskCard({
         <div className="flex items-start gap-2 flex-1 min-w-0">
           {canEdit && (
             <div
-              {...attributes}
-              {...listeners}
-              onClick={(e) => e.stopPropagation()}
               className="mt-0.5 text-slate-300 hover:text-slate-600 cursor-grab active:cursor-grabbing p-0.5 rounded shrink-0 transition-colors"
               title="Drag task"
             >
@@ -104,6 +140,7 @@ function TaskCard({
         {canEdit && (
           <button
             type="button"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => onDeleteTask(e, task.id)}
             className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shrink-0 cursor-pointer"
             title="Delete task"
@@ -133,7 +170,7 @@ function Column({
   canEdit: boolean;
 }) {
   const { setNodeRef } = useDroppable({
-    id: column.id,
+    id: `column-${column.id}`,
     data: {
       type: 'Column',
       column,
@@ -170,7 +207,7 @@ function Column({
       </div>
 
       {/* Task List (Droppable area) */}
-      <SortableContext items={column.tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={column.tasks.map((t) => String(t.id))} strategy={verticalListSortingStrategy}>
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 py-1 min-h-[120px]">
           {column.tasks.length === 0 ? (
             <div className="h-full border border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-4 text-center">
@@ -224,10 +261,12 @@ export default function BoardPage() {
     moveTask,
     addBoardMember,
     removeBoardMember,
+    setBoard,
   } = useBoardStore();
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [boardSnapshot, setBoardSnapshot] = useState<Board | null>(null);
 
   // Modals state
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
@@ -248,8 +287,6 @@ export default function BoardPage() {
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const pointerYRef = useRef<number>(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -281,17 +318,84 @@ export default function BoardPage() {
 
   // --- Drag and drop handlers ---
   const handleDragStart = (event: DragStartEvent) => {
+    if (!canEdit) return;
     const { active } = event;
-    setActiveId(active.id as string);
+    const taskId = String(active.id);
+    setActiveId(taskId);
 
-    const task = currentBoard?.columns.flatMap((c) => c.tasks).find((t) => t.id === active.id);
+    const task = currentBoard?.columns.flatMap((c) => c.tasks).find((t) => String(t.id) === taskId);
     setActiveTask(task || null);
+
+    if (currentBoard) {
+      setBoardSnapshot(JSON.parse(JSON.stringify(currentBoard)));
+    }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    if (event.activatorEvent) {
-      const mouseEvent = event.activatorEvent as MouseEvent;
-      pointerYRef.current = mouseEvent.clientY + event.delta.y;
+    const { active, over } = event;
+    if (!over || !currentBoard) return;
+
+    const activeTaskId = String(active.id);
+    const overId = String(over.id);
+
+    if (activeTaskId === overId) return;
+
+    const findCol = (id: string) => {
+      if (id.startsWith('column-')) {
+        const colId = id.replace('column-', '');
+        return currentBoard.columns.find((c) => String(c.id) === colId);
+      }
+      return currentBoard.columns.find(
+        (c) => String(c.id) === id || c.tasks.some((t) => String(t.id) === id)
+      );
+    };
+
+    const sourceColumn = findCol(activeTaskId);
+    const targetColumn = findCol(overId);
+
+    if (!sourceColumn || !targetColumn) return;
+
+    // Cross-column movement during drag
+    if (sourceColumn.id !== targetColumn.id) {
+      const activeTaskItem = sourceColumn.tasks.find((t) => String(t.id) === activeTaskId);
+      if (!activeTaskItem) return;
+
+      const isOverTask = !overId.startsWith('column-') && String(targetColumn.id) !== overId;
+      const overIndex = isOverTask
+        ? targetColumn.tasks.findIndex((t) => String(t.id) === overId)
+        : -1;
+
+      let newIndex: number;
+      if (overIndex >= 0) {
+        newIndex = overIndex;
+      } else {
+        newIndex = targetColumn.tasks.length;
+      }
+
+      setBoard({
+        ...currentBoard,
+        columns: currentBoard.columns.map((col) => {
+          if (col.id === sourceColumn.id) {
+            return {
+              ...col,
+              tasks: col.tasks.filter((t) => String(t.id) !== activeTaskId),
+            };
+          }
+          if (col.id === targetColumn.id) {
+            const updatedTask: Task = {
+              ...activeTaskItem,
+              columnId: String(targetColumn.id),
+            };
+            const nextTasks = [...col.tasks];
+            nextTasks.splice(newIndex, 0, updatedTask);
+            return {
+              ...col,
+              tasks: nextTasks,
+            };
+          }
+          return col;
+        }),
+      });
     }
   };
 
@@ -300,88 +404,103 @@ export default function BoardPage() {
     setActiveId(null);
     setActiveTask(null);
 
-    if (!over || !currentBoard) return;
+    const snapshot = boardSnapshot;
+    setBoardSnapshot(null);
+
+    if (!over || !currentBoard || !snapshot) {
+      if (snapshot) setBoard(snapshot);
+      return;
+    }
 
     const activeTaskId = String(active.id);
     const overId = String(over.id);
 
-    const sourceColumn = currentBoard.columns.find((c) =>
-      c.tasks.some((t) => String(t.id) === activeTaskId)
-    );
-    let targetColumn = currentBoard.columns.find((c) =>
-      c.tasks.some((t) => String(t.id) === overId)
-    );
+    const findColInBoard = (board: Board, id: string) => {
+      if (id.startsWith('column-')) {
+        const colId = id.replace('column-', '');
+        return board.columns.find((c) => String(c.id) === colId);
+      }
+      return board.columns.find(
+        (c) => String(c.id) === id || c.tasks.some((t) => String(t.id) === id)
+      );
+    };
 
-    if (!targetColumn) {
-      targetColumn = currentBoard.columns.find((c) => String(c.id) === overId);
+    const originalColumn = findColInBoard(snapshot, activeTaskId);
+    const currentColumn = findColInBoard(currentBoard, activeTaskId);
+    const dropTargetColumn = findColInBoard(currentBoard, overId);
+
+    if (!originalColumn || !currentColumn || !dropTargetColumn) {
+      setBoard(snapshot);
+      return;
     }
 
-    if (!sourceColumn || !targetColumn) return;
+    const isSameColumn = String(originalColumn.id) === String(dropTargetColumn.id);
 
-    const activeIndex = sourceColumn.tasks.findIndex((t) => String(t.id) === activeTaskId);
+    let finalTasks = [...currentColumn.tasks];
+    const activeIdx = finalTasks.findIndex((t) => String(t.id) === activeTaskId);
 
-    if (activeIndex === -1) return;
+    const isOverTask = !overId.startsWith('column-') && String(dropTargetColumn.id) !== overId;
+    const overIdx = isOverTask ? finalTasks.findIndex((t) => String(t.id) === overId) : -1;
+
+    if (isSameColumn) {
+      if (activeIdx !== -1 && overIdx !== -1 && activeIdx !== overIdx) {
+        finalTasks = arrayMove(finalTasks, activeIdx, overIdx);
+        setBoard({
+          ...currentBoard,
+          columns: currentBoard.columns.map((c) =>
+            c.id === currentColumn.id ? { ...c, tasks: finalTasks } : c
+          ),
+        });
+      } else if (activeIdx === overIdx && overIdx !== -1) {
+        return;
+      }
+    } else {
+      if (activeIdx !== -1 && overIdx !== -1 && activeIdx !== overIdx) {
+        finalTasks = arrayMove(finalTasks, activeIdx, overIdx);
+        setBoard({
+          ...currentBoard,
+          columns: currentBoard.columns.map((c) =>
+            c.id === currentColumn.id ? { ...c, tasks: finalTasks } : c
+          ),
+        });
+      }
+    }
+
+    const finalIdx = finalTasks.findIndex((t) => String(t.id) === activeTaskId);
+    if (finalIdx === -1) {
+      setBoard(snapshot);
+      return;
+    }
 
     let targetTaskId: number | undefined;
     let position: 'before' | 'after' | undefined;
 
-    const isOverTask = overId !== String(targetColumn.id);
-
-    if (isOverTask) {
-      const overTaskIndex = targetColumn.tasks.findIndex((t) => String(t.id) === overId);
-      if (overTaskIndex === -1) return;
-
-      const overRect = over.rect;
-      const pointerY = pointerYRef.current;
-      const taskMidpoint = overRect.top + overRect.height / 2;
-
-      if (sourceColumn.id === targetColumn.id) {
-        if (activeIndex === overTaskIndex) return;
-
-        if (pointerY < taskMidpoint) {
-          targetTaskId = parseInt(overId, 10);
-          position = 'before';
-        } else {
-          targetTaskId = parseInt(overId, 10);
-          position = 'after';
-        }
-      } else {
-        if (pointerY < taskMidpoint) {
-          targetTaskId = parseInt(overId, 10);
-          position = 'before';
-        } else {
-          if (overTaskIndex === targetColumn.tasks.length - 1) {
-            targetTaskId = parseInt(overId, 10);
-            position = 'after';
-          } else {
-            targetTaskId = parseInt(String(targetColumn.tasks[overTaskIndex + 1].id), 10);
-            position = 'before';
-          }
-        }
-      }
+    if (finalTasks.length <= 1) {
+      targetTaskId = undefined;
+      position = undefined;
+    } else if (finalIdx === 0) {
+      targetTaskId = parseInt(String(finalTasks[1].id), 10);
+      position = 'before';
     } else {
-      if (sourceColumn.id === targetColumn.id) {
-        if (targetColumn.tasks.length === 0) return;
-        const lastTask = targetColumn.tasks[targetColumn.tasks.length - 1];
-        targetTaskId = parseInt(String(lastTask.id), 10);
-        position = 'after';
-      } else {
-        if (targetColumn.tasks.length === 0) {
-          targetTaskId = undefined;
-          position = undefined;
-        } else {
-          const lastTask = targetColumn.tasks[targetColumn.tasks.length - 1];
-          targetTaskId = parseInt(String(lastTask.id), 10);
-          position = 'after';
-        }
-      }
+      targetTaskId = parseInt(String(finalTasks[finalIdx - 1].id), 10);
+      position = 'after';
     }
 
     try {
-      await moveTask(activeTaskId, String(targetColumn.id), targetTaskId, position);
+      await moveTask(activeTaskId, String(currentColumn.id), targetTaskId, position);
     } catch (error) {
       console.error('Failed to move task:', error);
+      setBoard(snapshot);
       fetchBoard(boardId);
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setActiveTask(null);
+    if (boardSnapshot) {
+      setBoard(boardSnapshot);
+      setBoardSnapshot(null);
     }
   };
 
@@ -608,10 +727,11 @@ export default function BoardPage() {
       <main className="flex-1 p-4 sm:p-6 overflow-x-auto flex items-start">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={customCollisionDetection}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
           <div className="flex gap-5 items-start">
             {currentBoard.columns.map((column) => (

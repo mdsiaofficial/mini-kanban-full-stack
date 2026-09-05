@@ -90,6 +90,16 @@ export class ColumnsService {
   }
 
   private async checkBoardAccess(boardId: number, userId: number, allowedRoles: Role[]) {
+    // Check if user is the board owner
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      select: { ownerId: true },
+    });
+
+    if (board && board.ownerId === userId) {
+      return; // Owner has access
+    }
+
     const membership = await this.prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId } },
     });
