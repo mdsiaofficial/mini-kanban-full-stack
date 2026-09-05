@@ -1,5 +1,5 @@
 import { IsEmail, IsEnum, IsOptional } from 'class-validator';
-import { Role } from '@prisma/client';
+import { Role } from '../../../generated/prisma/client.js';
 
 export class AddMemberDto {
   @IsEmail()

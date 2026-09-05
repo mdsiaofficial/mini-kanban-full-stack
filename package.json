@@ -1,0 +1,34 @@
+{
+  "name": "mini-kanban-full-stack",
+  "module": "index.ts",
+  "type": "module",
+  "author": "Md Shoriful Islam Ashiq",
+  "private": true,
+  "scripts": {
+    "dd": "concurrently \"bun run dev:next\" \"bun run dev:backend\"",
+    "dev:next": "cd frontend && bun run dev",
+    "dev:backend": "cd backend && bun run dev",
+    "bb": "concurrently \"bun run build:next\" \"bun run build:backend\"",
+    "build:next": "cd frontend && bun run build",
+    "build:backend": "cd backend && bun run build",
+    "ss": "concurrently \"bun run start:next\" \"bun run start:backend\"",
+    "start:next": "cd frontend && bun run start",
+    "start:backend": "cd backend && bun run start",
+    "ii": "concurrently \"bun install\" \"bun run install:next\" \"bun run install:backend\"",
+    "install:next": "cd frontend && bun install",
+    "install:backend": "cd backend && bun install",
+    "ul": "concurrently \"bun update --latest\" \"bun run update-latest:next\" \"bun run update-latest:backend\"",
+    "update-latest:next": "cd frontend && bun update --latest",
+    "update-latest:backend": "cd backend && bun update --latest",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

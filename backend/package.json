@@ -5,14 +5,18 @@
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
-    "build": "bun run build",
-    "dev": "bun --watch run src/main.ts",
-    "start": "bun run start",
-    "start:dev": "bun run start --watch",
-    "start:prod": "bun run dist/main",
-    "pgen": "bunx prisma generate",
-    "pmig": "bunx prisma migrate dev",
-    "ppush": "bunx prisma db push"
+    "build": "nest build",
+
+    "dev": "bun --watch src/main.ts",
+    "start": "bun src/main.ts",
+    "start:dev": "bun --watch src/main.ts",
+    "start:prod": "bun dist/main.js",
+
+    "prisma:generate": "bunx prisma generate",
+    "prisma:migrate": "bunx prisma migrate dev",
+    "prisma:deploy": "bunx prisma migrate deploy",
+    "prisma:push": "bunx prisma db push",
+    "prisma:studio": "bunx prisma studio"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

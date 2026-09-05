@@ -1,8 +1,5 @@
-'use client';
-
 import type { Metadata } from 'next';
-import { useEffect } from 'react';
-import { useAuthStore } from '@/stores/auth';
+import { Providers } from '@/components/providers';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,15 +12,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const checkAuth = useAuthStore((state) => state.checkAuth);
-  
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-  
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

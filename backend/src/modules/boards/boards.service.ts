@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateBoardDto } from './dto/update-board.dto';
 import { AddMemberDto } from './dto/add-member.dto';
-import { Role } from '@prisma/client';
+import { Role } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class BoardsService {

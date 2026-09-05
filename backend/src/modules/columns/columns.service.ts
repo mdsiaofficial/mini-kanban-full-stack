@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateColumnDto } from './dto/create-column.dto';
 import { UpdateColumnDto } from './dto/update-column.dto';
 import { MoveColumnDto } from './dto/move-column.dto';
-import { Role } from '@prisma/client';
+import { Role } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class ColumnsService {
